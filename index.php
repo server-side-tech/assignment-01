@@ -1,4 +1,6 @@
 <?php
+
+include_once './error_codes.php';
 /*****************************************************************************
                         Functions of first form
  *****************************************************************************/
@@ -24,20 +26,24 @@ function isValidPassword(){
 }
 
 function processLoginForm(){
-    $output = "";
+    //$output = "";
+    
     if(isUserLoggedIn()){
         if(isValidPassword()){
-            //clear html content
-            $output = '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
-            //$output .= createUpdateInfoForm();
+            /*clear html content*/
+            '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
+            
+            /* set status to success*/
+            $state = Status::UserLoggedInSuccess;
         }else{
             echo '<p class="fail">Password was incorrect</p>';
+            $state = Status::PasswordNotMatched;
         }
+    }else{
+        $state = Status::UserNotLoggedIn;
     }
     
-    /* empty means either user did not log in or user logged in but password is incorrect.
-        In both cases, display the login form again */
-    return $output;
+    return $state;
 }
 
 /*****************************************************************************
@@ -89,7 +95,7 @@ function processUpdateInfoForm(){
     return $output;
 }
 
-$loginFormOutput = processLoginForm();
+$loginState = processLoginForm();
 $updateInfoFormOutput = processUpdateInfoForm();
 ?>
 
@@ -102,8 +108,8 @@ $updateInfoFormOutput = processUpdateInfoForm();
     </head>
     <body>
         <?php
-            if(empty($loginFormOutput)){
-                /* empty means either user did not log in or user logged in but password is 
+            if(Status::UserLoggedInSuccess !== $loginState){
+                /* This case means either user did not log in or user logged in but password is 
                  * incorrect. In both cases, display the login form again */
                 echo createLoginForm();
                 
@@ -112,6 +118,7 @@ $updateInfoFormOutput = processUpdateInfoForm();
                  * it will contain appropriate information to display according to privacy.*/
                 echo $updateInfoFormOutput;
             }else{
+                /* If user logged in successfully, display second form to update the information. */
                 echo createUpdateInfoForm();
             }
         ?>
