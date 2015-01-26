@@ -95,9 +95,9 @@ function processLoginForm(){
                         Functions of second form
  *****************************************************************************/
 function createUpdateInfoForm($newName, $email){
-    return '<form name="updateInfo" action="index.php" method="get">
-            Name: <input type="text" name="name" value="'.$newName.'"><br>
-            Email: <input type="email" name="email" value='.$email.'><br>
+    return '<form name="updateInfo" action="index.php" method="get">'
+    . 'Name: <input type="text" name="name" value="'.$newName.'"><br>
+            Email: <input type="email" name="email" value="'.$email.'"><br>
             <select name="privacy">
                 <option value="Public">Public</option>
                 <option value="Private">Private</option>
@@ -143,9 +143,8 @@ function validateNewName(){
     return array($state,$errors,$newName);
 }
 
-function validateEmail(){
+function validateEmail($errors){
     $state="";
-    $errors=array();
     $email = getEmail();
     if (empty(trim($email))){
         $errors["email"] = "Email can't be blank";
@@ -177,7 +176,7 @@ function processUpdateInfoForm(){
         
         $state = Status::FORM_SUBMITTED;
         list($state,$errors,$newName) = validateNewName();
-        list($state, $errors, $email) = validateEmail();
+        list($state, $errors, $email) = validateEmail($errors);
         switch (getPrivacy()){
             case "Public":
                 $output = "New Name: ".$newName."<br>";
@@ -223,7 +222,7 @@ list($updateState, $updateErrors,$formOutput,$newName,$email) = processUpdateInf
 
                    /* Display the output after processing second form.*/
                    if(Status::UPDATE_INFO_SUCCESS === $updateState){
-                       echo $formOutput;
+                       echo "<br>".$formOutput;
                    }
                 }else{
                    
