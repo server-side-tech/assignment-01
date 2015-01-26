@@ -23,15 +23,22 @@ function dumpPostArray($required){
     }
 }
 
+function createLoginForm(){
+    return '<form name="userLogin" action="index.php" method="post">
+            Username: <input type="text" name="username" value=""><br>
+            Password: <input type="password" name="password" value=""><br>
+            <input type="submit" name="login" value="Log in">
+        </form>';
+}
 //dumpPostArray(TRUE);
 if(isUserLoggedIn()){
     if(isValidPassword()){
-        $loginOutput = 'Password is valid';
+        $loginOutput = '<p class="success">Password is valid</p>';
     }else{
-        $loginOutput = "Password was incorrect";
+        $loginOutput = '<p class="fail">Password was incorrect</p>';
     }
-}else {
-    $loginOutput = 'Please Log in';
+}else{
+    $loginOutput = "";
 }
 ?>
 
@@ -40,15 +47,13 @@ if(isUserLoggedIn()){
     <head>
         <meta charset="UTF-8">
         <title>Basic Form</title>
+        <link rel="stylesheet" href="css/main.css">
     </head>
     <body>
+<!--        Create initial login form -->
         <?php
-        echo "$loginOutput";
+            echo $loginOutput;
+            echo createLoginForm();
         ?>
-        <form name="userLogin" action="index.php" method="post">
-            Username: <input type="text" name="username" value=""><br>
-            Password: <input type="password" name="password" value=""><br>
-            <input type="submit" name="login" value="Log in">
-        </form>
     </body>
 </html>
