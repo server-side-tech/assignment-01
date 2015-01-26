@@ -21,7 +21,7 @@ function formErrors($errors=array()){
  *****************************************************************************/
 function createLoginForm($name=""){
     return '<form name="userLogin" action="index.php" method="post">
-            Username: <input type="text" name="username" value='.$name.'><br>
+            Username: <input type="text" name="username" value="'.$name.'"><br>
             Password: <input type="password" name="password" value=""><br>
             <input type="submit" name="login" value="Log in">
         </form>';
@@ -46,7 +46,7 @@ function validateUserName(){
     $username = getUsername();
     if (empty(trim($username))){
         $errors["username"] = "username can't be blank";
-        $state = Status::BlankField;
+        $state = Status::BlANK_FIELD;
         
         /* For security purpose only, add Password error as well even if it is corrcect.*/
         $errors["password"] = "Password was incorrect";
@@ -76,7 +76,7 @@ function processLoginForm(){
         
         if(!isValidPassword()){
             $errors["password"] = "Password was incorrect";
-            $state = Status::PasswordNotMatched;            
+            $state = Status::INVALID_PASSWORD;            
         }
         
         if(empty($errors)){
@@ -84,7 +84,7 @@ function processLoginForm(){
             '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
             
             /* set status to success*/
-            $state = Status::UserLoggedInSuccess;
+            $state = Status::LOGIN_SUCCESS;
         }
     }
     
@@ -94,10 +94,10 @@ function processLoginForm(){
 /*****************************************************************************
                         Functions of second form
  *****************************************************************************/
-function createUpdateInfoForm(){
+function createUpdateInfoForm($newName, $email){
     return '<form name="updateInfo" action="index.php" method="get">
-            Name: <input type="text" name="name" value=""><br>
-            Email: <input type="email" name="email" value=""><br>
+            Name: <input type="text" name="name" value="'.$newName.'"><br>
+            Email: <input type="email" name="email" value='.$email.'><br>
             <select name="privacy">
                 <option value="Public">Public</option>
                 <option value="Private">Private</option>
@@ -121,33 +121,88 @@ function getEmail(){
     return filter_input(INPUT_GET, "email");
 }
 
+function validateNewName(){
+    $state="";
+    $errors=array();
+    $newName = getNewName();
+    if (empty(trim($newName))){
+        $errors["name"] = "New name can't be blank";
+        $state = Status::BlANK_FIELD;
+
+    }else{
+        /* Validate new does not contain any special characters or numbers */
+        if(!preg_match('/^[A-Za-z][[A-Za-z ]*$/', $newName)){
+            $errors["name"] = "New name must start with alphabetet character & might contain spaces. No numbers or special characters";
+            $state = Status::INVALID_NEW_NAME;
+            
+            /* Encode any HTML special characters that user might entered (like <>) to display again as it is.*/
+            $newName = htmlspecialchars($newName);
+        }
+    }
+    
+    return array($state,$errors,$newName);
+}
+
+function validateEmail(){
+    $state="";
+    $errors=array();
+    $email = getEmail();
+    if (empty(trim($email))){
+        $errors["email"] = "Email can't be blank";
+        $state = Status::BlANK_FIELD;
+
+    }else{
+        /* Validate new does not contain any special characters or numbers */
+        if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
+            $errors["email"] = "Email must have following format example@domain.com";
+            $state = Status::INVALID_EMAIL;
+            
+            /* Encode any HTML special characters that user might entered (like <>) to display again as it is.*/
+            $email = htmlspecialchars($email);
+        }
+    }
+    
+    return array($state,$errors,$email);    
+    
+}
+
 function processUpdateInfoForm(){
     $output = "";
     $state = NULL;
+    $errors = array();
+    $newName = "";
+    $email = "";
+    
     if(isFormSubmitted()){
-        $state = Status::UpdateInfoSucess;
         
+        $state = Status::FORM_SUBMITTED;
+        list($state,$errors,$newName) = validateNewName();
+        list($state, $errors, $email) = validateEmail();
         switch (getPrivacy()){
             case "Public":
-                $output = "New Name: ".getNewName()."<br>";
-                $output .= "Email: ".getEmail()."<br>";
+                $output = "New Name: ".$newName."<br>";
+                $output .= "Email: ".$email."<br>";
                 $output .= "Privacy: Public";
                 break;
             case "Private":
                 $output = "user info is private";
                 break;
             default :
-                $status = Status::InvalidPrivacy;
+                $status = Status::INVALID_PRIVACY;
+                $errors["privacy"] = "Invalid Privacy";
         }
+        
+        $state = empty($errors)? Status::UPDATE_INFO_SUCCESS:$state;
     }else{
         $state = Status::FormNotSubmitted;
     }
     
-    return array($state, $output);
+    return array($state, $errors,$output,$newName,$email);
 }
 
-list($loginState, $errors, $username) = processLoginForm();
-list($updateState, $formOutput) = processUpdateInfoForm();
+list($loginState, $loginErrors, $username) = processLoginForm();
+list($updateState, $updateErrors,$formOutput,$newName,$email) = processUpdateInfoForm();
+
 ?>
 
 <!DOCTYPE html>
@@ -159,19 +214,26 @@ list($updateState, $formOutput) = processUpdateInfoForm();
     </head>
     <body>
         <?php
-            if(Status::UserLoggedInSuccess !== $loginState){
-                /* This case means either user did not log in or user logged in but password is 
-                 * incorrect. In both cases, display the login form again */
-                echo formErrors($errors).createLoginForm($username);
-                
-                /* Display the output after processing second form.*/
-                if(Status::UpdateInfoSucess === $updateState){
-                    echo $formOutput;
-                }
-                
+            if(Status::LOGIN_SUCCESS !== $loginState){
+               
+                if(empty($updateErrors)){
+                    /* This case means either user did not log in or user logged in but password is 
+                     * incorrect. In both cases, display the login form again */
+                   echo formErrors($loginErrors).createLoginForm($username);
+
+                   /* Display the output after processing second form.*/
+                   if(Status::UPDATE_INFO_SUCCESS === $updateState){
+                       echo $formOutput;
+                   }
+                }else{
+                   
+                       /* This case means that user entered wrong input in the second form while updating
+                        * the new information*/
+                      echo formErrors($updateErrors).createUpdateInfoForm($newName, $email);
+                   }
             }else{
                 /* If user logged in successfully, display second form to update the information. */
-                echo formErrors($errors).createUpdateInfoForm();
+                echo createUpdateInfoForm($newName,$email);
             }
         ?>
     </body>
