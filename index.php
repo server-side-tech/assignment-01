@@ -29,12 +29,14 @@ function processLoginForm(){
         if(isValidPassword()){
             //clear html content
             $output = '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
-            $output .= createUpdateInfoForm();
+            //$output .= createUpdateInfoForm();
         }else{
             echo '<p class="fail">Password was incorrect</p>';
         }
     }
     
+    /* empty means either user did not log in or user logged in but password is incorrect.
+        In both cases, display the login form again */
     return $output;
 }
 
@@ -71,15 +73,14 @@ function getEmail(){
 function processUpdateInfoForm(){
     $output = "";
     if(isFormSubmitted()){
-        $output = createLoginForm();
         switch (getPrivacy()){
             case "Public":
-                $output .= "New Name: ".getNewName()."<br>";
+                $output = "New Name: ".getNewName()."<br>";
                 $output .= "Email: ".getEmail()."<br>";
                 $output .= "Privacy: Public";
                 break;
             case "Private":
-                $output .= "user info is private";
+                $output = "user info is private";
                 break;
             default :
         }
@@ -88,8 +89,8 @@ function processUpdateInfoForm(){
     return $output;
 }
 
-$loginOutput = processLoginForm();
-$loginOutput .= processUpdateInfoForm();
+$loginFormOutput = processLoginForm();
+$updateInfoFormOutput = processUpdateInfoForm();
 ?>
 
 <!DOCTYPE html>
@@ -101,10 +102,17 @@ $loginOutput .= processUpdateInfoForm();
     </head>
     <body>
         <?php
-            if(empty($loginOutput)){
+            if(empty($loginFormOutput)){
+                /* empty means either user did not log in or user logged in but password is 
+                 * incorrect. In both cases, display the login form again */
                 echo createLoginForm();
+                
+                /* Display the output after processing update information form.
+                 * Initially, it will be empty string but after submission of update,
+                 * it will contain appropriate information to display according to privacy.*/
+                echo $updateInfoFormOutput;
             }else{
-                echo $loginOutput;
+                echo createUpdateInfoForm();
             }
         ?>
     </body>
