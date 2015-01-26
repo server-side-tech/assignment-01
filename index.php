@@ -1,12 +1,27 @@
 <?php
 
 include_once './error_codes.php';
+
+function formErrors($errors=array()){
+    $output = "";
+    if(!empty($errors)){
+        $output .= '<div class="fail">Pleae fix the following errors:<br>';
+        $output .= '<ul>';
+        foreach ($errors as $key => $value){
+            $output .= ("<li>".$value."</li>");
+        }
+        $output .= "</ul></div><br>";
+    }
+    
+    return $output;
+}
+
 /*****************************************************************************
                         Functions of first form
  *****************************************************************************/
-function createLoginForm(){
+function createLoginForm($name=""){
     return '<form name="userLogin" action="index.php" method="post">
-            Username: <input type="text" name="username" value=""><br>
+            Username: <input type="text" name="username" value='.$name.'><br>
             Password: <input type="password" name="password" value=""><br>
             <input type="submit" name="login" value="Log in">
         </form>';
@@ -18,32 +33,62 @@ function isUserLoggedIn(){
 
 function isValidPassword(){
     define("FORM_PASSWORD", "pass123");
-    if(isUserLoggedIn()){
-        return FORM_PASSWORD === filter_input(INPUT_POST, "password");
-    }  else { // case form is not submitted, return false.
-        return FALSE;
+    return FORM_PASSWORD === filter_input(INPUT_POST, "password");
+}
+
+function getUsername(){
+    return $_POST["username"];
+}
+
+function validateUserName(){
+    $state="";
+    $errors=array();
+    $username = getUsername();
+    if (empty(trim($username))){
+        $errors["username"] = "username can't be blank";
+        $state = Status::BlankField;
+        
+        /* For security purpose only, add Password error as well even if it is corrcect.*/
+        $errors["password"] = "Password was incorrect";
+    }else{
+        /* Validate username does not contain special characters except underscore. */
+        if(!preg_match('/^[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)*$/', $username)){
+            $errors["username"] = "username must start with alphabetet character & might followed by underscore or numbers";
+            $state = Status::INVALID_USERNAME;
+            
+            /* Encode any HTML special characters that user might entered (like <>) to display again as it is.*/
+            $username = htmlspecialchars($username);
+        }
     }
+    
+    return array($state, $errors, $username);
 }
 
 function processLoginForm(){
-    //$output = "";
-    
-    if(isUserLoggedIn()){
-        if(isValidPassword()){
+    $errors = array();
+    $username = "";
+    /* Check if the user cicks on log in button to submit the first form. */
+    if(!isUserLoggedIn()){
+        $state = Status::FormNotSubmitted;
+    }else{
+        
+        list($state, $errors,$username) = validateUserName();
+        
+        if(!isValidPassword()){
+            $errors["password"] = "Password was incorrect";
+            $state = Status::PasswordNotMatched;            
+        }
+        
+        if(empty($errors)){
             /*clear html content*/
             '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
             
             /* set status to success*/
             $state = Status::UserLoggedInSuccess;
-        }else{
-            echo '<p class="fail">Password was incorrect</p>';
-            $state = Status::PasswordNotMatched;
         }
-    }else{
-        $state = Status::FormNotSubmitted;
     }
     
-    return $state;
+    return array($state, $errors, $username);
 }
 
 /*****************************************************************************
@@ -78,6 +123,7 @@ function getEmail(){
 
 function processUpdateInfoForm(){
     $output = "";
+    $state = NULL;
     if(isFormSubmitted()){
         $state = Status::UpdateInfoSucess;
         
@@ -100,7 +146,7 @@ function processUpdateInfoForm(){
     return array($state, $output);
 }
 
-$loginState = processLoginForm();
+list($loginState, $errors, $username) = processLoginForm();
 list($updateState, $formOutput) = processUpdateInfoForm();
 ?>
 
@@ -116,7 +162,7 @@ list($updateState, $formOutput) = processUpdateInfoForm();
             if(Status::UserLoggedInSuccess !== $loginState){
                 /* This case means either user did not log in or user logged in but password is 
                  * incorrect. In both cases, display the login form again */
-                echo createLoginForm();
+                echo formErrors($errors).createLoginForm($username);
                 
                 /* Display the output after processing second form.*/
                 if(Status::UpdateInfoSucess === $updateState){
@@ -125,7 +171,7 @@ list($updateState, $formOutput) = processUpdateInfoForm();
                 
             }else{
                 /* If user logged in successfully, display second form to update the information. */
-                echo createUpdateInfoForm();
+                echo formErrors($errors).createUpdateInfoForm();
             }
         ?>
     </body>
