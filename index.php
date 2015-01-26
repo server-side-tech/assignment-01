@@ -40,7 +40,7 @@ function processLoginForm(){
             $state = Status::PasswordNotMatched;
         }
     }else{
-        $state = Status::UserNotLoggedIn;
+        $state = Status::FormNotSubmitted;
     }
     
     return $state;
@@ -79,6 +79,8 @@ function getEmail(){
 function processUpdateInfoForm(){
     $output = "";
     if(isFormSubmitted()){
+        $state = Status::UpdateInfoSucess;
+        
         switch (getPrivacy()){
             case "Public":
                 $output = "New Name: ".getNewName()."<br>";
@@ -89,14 +91,17 @@ function processUpdateInfoForm(){
                 $output = "user info is private";
                 break;
             default :
+                $status = Status::InvalidPrivacy;
         }
+    }else{
+        $state = Status::FormNotSubmitted;
     }
     
-    return $output;
+    return array($state, $output);
 }
 
 $loginState = processLoginForm();
-$updateInfoFormOutput = processUpdateInfoForm();
+list($updateState, $formOutput) = processUpdateInfoForm();
 ?>
 
 <!DOCTYPE html>
@@ -113,10 +118,11 @@ $updateInfoFormOutput = processUpdateInfoForm();
                  * incorrect. In both cases, display the login form again */
                 echo createLoginForm();
                 
-                /* Display the output after processing update information form.
-                 * Initially, it will be empty string but after submission of update,
-                 * it will contain appropriate information to display according to privacy.*/
-                echo $updateInfoFormOutput;
+                /* Display the output after processing second form.*/
+                if(Status::UpdateInfoSucess === $updateState){
+                    echo $formOutput;
+                }
+                
             }else{
                 /* If user logged in successfully, display second form to update the information. */
                 echo createUpdateInfoForm();
