@@ -1,10 +1,17 @@
 <?php
-function isUserLoggedIn(){
-    return filter_input(INPUT_POST, "login");
+/*****************************************************************************
+                        Functions of first form
+ *****************************************************************************/
+function createLoginForm(){
+    return '<form name="userLogin" action="index.php" method="post">
+            Username: <input type="text" name="username" value=""><br>
+            Password: <input type="password" name="password" value=""><br>
+            <input type="submit" name="login" value="Log in">
+        </form>';
 }
 
-function isFormSubmitted(){
-    return filter_input(INPUT_POST, "submit");
+function isUserLoggedIn(){
+    return filter_input(INPUT_POST, "login");
 }
 
 function isValidPassword(){
@@ -16,30 +23,73 @@ function isValidPassword(){
     }
 }
 
-function dumpPostArray($required){
-    if($required && isset($_POST)){
-        var_dump($_POST);
-        echo "<br>";
+function processLoginForm(){
+    $output = "";
+    if(isUserLoggedIn()){
+        if(isValidPassword()){
+            //clear html content
+            $output = '<script type="text/javascript"> document.body.innerHTML = ""; </script>';
+            $output .= createUpdateInfoForm();
+        }else{
+            echo '<p class="fail">Password was incorrect</p>';
+        }
     }
+    
+    return $output;
 }
 
-function createLoginForm(){
-    return '<form name="userLogin" action="index.php" method="post">
-            Username: <input type="text" name="username" value=""><br>
-            Password: <input type="password" name="password" value=""><br>
-            <input type="submit" name="login" value="Log in">
+/*****************************************************************************
+                        Functions of second form
+ *****************************************************************************/
+function createUpdateInfoForm(){
+    return '<form name="updateInfo" action="index.php" method="get">
+            Name: <input type="text" name="name" value=""><br>
+            Email: <input type="email" name="email" value=""><br>
+            <select name="privacy">
+                <option value="Public">Public</option>
+                <option value="Private">Private</option>
+            </select><br>
+            <input type="submit" name="update" value="Update">
         </form>';
 }
-//dumpPostArray(TRUE);
-if(isUserLoggedIn()){
-    if(isValidPassword()){
-        $loginOutput = '<p class="success">Password is valid</p>';
-    }else{
-        $loginOutput = '<p class="fail">Password was incorrect</p>';
-    }
-}else{
-    $loginOutput = "";
+
+function isFormSubmitted(){
+    return filter_input(INPUT_GET, "update");
 }
+
+function getPrivacy(){
+    return filter_input(INPUT_GET, "privacy");
+}
+function getNewName(){
+    return filter_input(INPUT_GET, "name");
+}
+
+function getEmail(){
+    return filter_input(INPUT_GET, "email");
+}
+
+function processUpdateInfoForm(){
+    $output = "";
+    if(isFormSubmitted()){
+        $output = createLoginForm();
+        switch (getPrivacy()){
+            case "Public":
+                $output .= "New Name: ".getNewName()."<br>";
+                $output .= "Email: ".getEmail()."<br>";
+                $output .= "Privacy: Public";
+                break;
+            case "Private":
+                $output .= "user info is private";
+                break;
+            default :
+        }
+    }
+    
+    return $output;
+}
+
+$loginOutput = processLoginForm();
+$loginOutput .= processUpdateInfoForm();
 ?>
 
 <!DOCTYPE html>
@@ -50,10 +100,12 @@ if(isUserLoggedIn()){
         <link rel="stylesheet" href="css/main.css">
     </head>
     <body>
-<!--        Create initial login form -->
         <?php
-            echo $loginOutput;
-            echo createLoginForm();
+            if(empty($loginOutput)){
+                echo createLoginForm();
+            }else{
+                echo $loginOutput;
+            }
         ?>
     </body>
 </html>
